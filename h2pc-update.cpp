@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <windows.h>
 
+HANDLE hConsole;
+WORD saved_text_attributes;
+
 //Pauses the output console such that the user can keep up with the output for example.
 void UserDelay() {
 	printf("Press ENTER to continue...");
@@ -24,6 +27,12 @@ static const wchar_t H2UpdateLocationsStr[3][10] = { L"[Temp]", L"[Game]", L"[Ap
 
 int main()
 {
+	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
+	GetConsoleScreenBufferInfo(hConsole, &consoleInfo);
+	saved_text_attributes = consoleInfo.wAttributes;
+
+
 	int ArgCnt = 0;
 	LPWSTR* ArgList = CommandLineToArgvW(GetCommandLineW(), &ArgCnt);
 
@@ -66,14 +75,20 @@ int main()
 	}
 
 	if (max_attempts <= 0) {
+		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 		printf("Error. Process never closed. Timed out!\n");
+		SetConsoleTextAttribute(hConsole, saved_text_attributes);
 	}
 	else if (recorded_locations <= 0) {
+		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 		printf("No input file arguments!\n");
+		SetConsoleTextAttribute(hConsole, saved_text_attributes);
 		PrintHelp();
 	}
 	else if (recorded_locations % 2 != 0) {
+		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 		printf("Invalid input argument set!\n");
+		SetConsoleTextAttribute(hConsole, saved_text_attributes);
 		PrintHelp();
 	}
 	else {
@@ -103,7 +118,7 @@ int main()
 			CreateDirectoryW(dir_update_mk, NULL);
 		}
 
-		for (int i = 1; i < recorded_locations; i += 2) {
+		for (int i = 0; i < recorded_locations; i += 2) {
 
 			//Sort out the old removed location
 			wchar_t* pos_file = 0;
@@ -168,18 +183,24 @@ int main()
 			DWORD last_err = 0;
 			if (MoveFile(old_file, old_rem_file) || (last_err = GetLastError()) == ENOENT) {
 				if (CopyFile(new_file, old_file, false)) {
+					SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 					printf("--- SUCCESS! ---\n\n");
+					SetConsoleTextAttribute(hConsole, saved_text_attributes);
 				}
 				else {
+					SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 					printf("Failed to copy in new file!\n");
 					if (!last_err) {
 						printf("Puting back old file.\n");
 						MoveFile(old_rem_file, old_file);
 					}
+					SetConsoleTextAttribute(hConsole, saved_text_attributes);
 				}
 			}
 			else {
+				SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 				printf("Failed to move out old file!\n");
+				SetConsoleTextAttribute(hConsole, saved_text_attributes);
 			}
 
 
