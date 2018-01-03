@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <windows.h>
 
-HANDLE hConsole;
+//Global vars to save/restore the original text colour.
+HANDLE hConsoleOutput;
 WORD saved_text_attributes;
 
 //Pauses the output console such that the user can keep up with the output for example.
@@ -27,11 +28,10 @@ static const wchar_t H2UpdateLocationsStr[3][10] = { L"[Temp]", L"[Game]", L"[Ap
 
 int main()
 {
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
-	GetConsoleScreenBufferInfo(hConsole, &consoleInfo);
+	GetConsoleScreenBufferInfo(hConsoleOutput, &consoleInfo);
 	saved_text_attributes = consoleInfo.wAttributes;
-
 
 	int ArgCnt = 0;
 	LPWSTR* ArgList = CommandLineToArgvW(GetCommandLineW(), &ArgCnt);
@@ -42,13 +42,19 @@ int main()
 	int max_attempts = 120;
 
 	if (ArgList && ArgCnt > 1) {
+
+		for (int i = 1; i < ArgCnt; i++) {
+			wprintf(L"%ws ", ArgList[i]);
+		}
+		printf("\n\n");
+
 		for (int i = 1; i < ArgCnt; i++) {
 			if (ArgList[i][0] == '-') {
 				if (ArgList[i][1] == 'p') {
 					i++;
 					int tempint1 = 0;
 					if (swscanf_s(ArgList[i], L"%d", &tempint1) == 1) {
-						printf("Waiting for PID:%d to end...\n", tempint1);
+						printf("Waiting for PID:%d to end...\n\n", tempint1);
 						HANDLE phandle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, tempint1);
 						DWORD exit_code = 0;
 						//GetExitCodeProcess will not work if process exits with code 259 (STILL_ACTIVE).
@@ -61,7 +67,7 @@ int main()
 					i++;
 					long templong1 = 0;
 					if (swscanf_s(ArgList[i], L"%ld", &templong1) == 1) {
-						printf("Waiting %ld milliseconds...\n", templong1);
+						printf("Waiting %ld milliseconds...\n\n", templong1);
 						Sleep(templong1);
 					}
 				}
@@ -69,26 +75,24 @@ int main()
 			else {
 				file_locations[recorded_locations++] = ArgList[i];
 			}
-
-			//wprintf(L"%ws\n", ArgList[i]);
 		}
 	}
 
 	if (max_attempts <= 0) {
-		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+		SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 		printf("Error. Process never closed. Timed out!\n");
-		SetConsoleTextAttribute(hConsole, saved_text_attributes);
+		SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 	}
 	else if (recorded_locations <= 0) {
-		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+		SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 		printf("No input file arguments!\n");
-		SetConsoleTextAttribute(hConsole, saved_text_attributes);
+		SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 		PrintHelp();
 	}
 	else if (recorded_locations % 2 != 0) {
-		SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+		SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 		printf("Invalid input argument set!\n");
-		SetConsoleTextAttribute(hConsole, saved_text_attributes);
+		SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 		PrintHelp();
 	}
 	else {
@@ -183,24 +187,24 @@ int main()
 			DWORD last_err = 0;
 			if (MoveFile(old_file, old_rem_file) || (last_err = GetLastError()) == ENOENT) {
 				if (CopyFile(new_file, old_file, false)) {
-					SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+					SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_GREEN);
 					printf("--- SUCCESS! ---\n\n");
-					SetConsoleTextAttribute(hConsole, saved_text_attributes);
+					SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 				}
 				else {
-					SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+					SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 					printf("Failed to copy in new file!\n");
 					if (!last_err) {
 						printf("Puting back old file.\n");
 						MoveFile(old_rem_file, old_file);
 					}
-					SetConsoleTextAttribute(hConsole, saved_text_attributes);
+					SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 				}
 			}
 			else {
-				SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+				SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 				printf("Failed to move out old file!\n");
-				SetConsoleTextAttribute(hConsole, saved_text_attributes);
+				SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 			}
 
 
@@ -213,6 +217,7 @@ int main()
 	}
 	free(file_locations);
 
+	printf("\n");
 	UserDelay();
 
     return 0;
