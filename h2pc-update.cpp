@@ -8,6 +8,28 @@
 HANDLE hConsoleOutput;
 WORD saved_text_attributes;
 
+void EnsureDirectoryExists(wchar_t* path) {
+	int buflen = wcslen(path) + 1;
+	wchar_t* path2 = (wchar_t*)malloc(sizeof(wchar_t) * buflen);
+	memcpy(path2, path, sizeof(wchar_t) * buflen);
+
+	for (int i = 1; i < buflen; i++) {
+		if (path2[i] == L'/' || path2[i] == L'\\') {
+			wchar_t temp_cut = 0;
+			if (path2[i + 1] != 0) {
+				temp_cut = path2[i + 1];
+				path2[i + 1] = 0;
+			}
+			CreateDirectoryW(path2, NULL);
+			if (temp_cut) {
+				path2[i + 1] = temp_cut;
+			}
+		}
+	}
+
+	free(path2);
+}
+
 //Pauses the output console such that the user can keep up with the output for example.
 void UserDelay() {
 	printf("Press ENTER to continue...");
@@ -113,14 +135,6 @@ int main()
 		swprintf(dir_update_old, 1024, L"%ws\\Halo2\\UpdateOld\\", dir_temp);
 		CreateDirectoryW(dir_update_old, NULL);
 
-		for (int j = 0; j < 3; j++) {
-			wchar_t dir_update_mk[1024];
-			swprintf(dir_update_mk, 1024, L"%ws\\Halo2\\Update\\%ws\\", dir_temp, H2UpdateLocationsStr[j]);
-			CreateDirectoryW(dir_update_mk, NULL);
-
-			swprintf(dir_update_mk, 1024, L"%ws\\Halo2\\UpdateOld\\%ws\\", dir_temp, H2UpdateLocationsStr[j]);
-			CreateDirectoryW(dir_update_mk, NULL);
-		}
 
 		for (int i = 0; i < recorded_locations; i += 2) {
 
@@ -181,8 +195,11 @@ int main()
 
 			//Move/Copy the files.
 			wprintf(L"New File: \"%ws\"\n", new_file);
+			EnsureDirectoryExists(new_file);
 			wprintf(L"Old File: \"%ws\"\n", old_file);
+			EnsureDirectoryExists(old_file);
 			wprintf(L"Old File Moving to: \"%ws\"\n", old_rem_file);
+			EnsureDirectoryExists(old_rem_file);
 
 			DWORD last_err = 0;
 			if (MoveFile(old_file, old_rem_file) || (last_err = GetLastError()) == ENOENT) {
