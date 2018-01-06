@@ -77,12 +77,15 @@ int main()
 					int tempint1 = 0;
 					if (swscanf_s(ArgList[i], L"%d", &tempint1) == 1) {
 						printf("Waiting for PID:%d to end...\n\n", tempint1);
-						HANDLE phandle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, tempint1);
-						DWORD exit_code = 0;
-						//GetExitCodeProcess will not work if process exits with code 259 (STILL_ACTIVE).
-						while (GetExitCodeProcess(phandle, &exit_code), exit_code == STILL_ACTIVE && --max_attempts > 0) {
+						HANDLE phandle = 0;
+						while ((phandle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, tempint1)) && --max_attempts > 0) {
+							printf("Process Handle:%d\n", phandle);
+							CloseHandle(phandle);
 							Sleep(500L);
 						}
+						printf("Process Handle:%d\n", phandle);
+						if (phandle)
+							CloseHandle(phandle);
 					}
 				}
 				else if (ArgList[i][1] == 't') {
