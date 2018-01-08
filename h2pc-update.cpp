@@ -61,7 +61,7 @@ int main()
 	wchar_t** file_locations = (wchar_t**)malloc(sizeof(wchar_t*) * ArgCnt);
 	int recorded_locations = 0;
 
-	int max_attempts = 120;
+	int max_attempts = 60;
 
 	if (ArgList && ArgCnt > 1) {
 
@@ -108,7 +108,7 @@ int main()
 		printf("Error. Process never closed. Timed out!\n");
 		SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
 	}
-	else if (recorded_locations <= 0) {
+	if (recorded_locations <= 0) {
 		SetConsoleTextAttribute(hConsoleOutput, FOREGROUND_RED);
 		printf("No input file arguments!\n");
 		SetConsoleTextAttribute(hConsoleOutput, saved_text_attributes);
